@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, {useState} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import logo from './logo.svg';
 import './App.css';
 import {css} from "@emotion/react";
@@ -25,16 +25,42 @@ const cardTitleStyles = css`
   }
 `
 // card 组件
-const KanbanCard = ({title, status}) => (
-    <li css={kanbanCardStyles}>
-      <div css={cardTitleStyles}>{title}</div>
-      <div css={css`
-        text-align: right;
-        font-size: 0.8rem;
-        color: #333;
-      `}>{status}</div>
-    </li>
-)
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const UPDATE_INTERVAL = MINUTE;
+const KanbanCard = ({title, status}) => {
+  const [displayTime, setDisplayTime] = useState(status);
+  useEffect(() => {
+    const updateDisplayTime = () => {
+      const timePassed = new Date() - new Date(status);
+      let relativeTime = '刚刚';
+      if (MINUTE <= timePassed && timePassed < HOUR) {
+        relativeTime = `${Math.ceil(timePassed / MINUTE)} 分钟前`;
+      } else if (HOUR <= timePassed && timePassed < DAY) {
+        relativeTime = `${Math.ceil(timePassed / HOUR)} 小时前`;
+      } else if (DAY <= timePassed) {
+        relativeTime = `${Math.ceil(timePassed / DAY)} 天前`;
+      }
+      setDisplayTime(relativeTime);
+    };
+    const intervalId = setInterval(updateDisplayTime, UPDATE_INTERVAL);
+    updateDisplayTime();
+    return function cleanup() {
+      clearInterval(intervalId);
+    };
+  }, [status]);
+  return (
+      <li css={kanbanCardStyles}>
+        <div css={cardTitleStyles}>{title}</div>
+        <div css={css`
+          text-align: right;
+          font-size: 0.8rem;
+          color: #333;
+        `} title={status}>{displayTime}</div>
+      </li>
+  )
+}
 
 const KanbanNewCard = ({onSubmit}) => {
   const [title, setTitle] = useState('');
@@ -47,11 +73,16 @@ const KanbanNewCard = ({onSubmit}) => {
       setTitle('')
     }
   }
+  // 自动设置焦点
+  const inputElm = useRef(null);
+  useEffect(()=>{
+    inputElm.current.focus();
+  },[])
   return (
       <li css={kanbanCardStyles}>
         <h3>添加新卡片</h3>
         <div css={cardTitleStyles}>
-          <input type="text" value={title} onChange={handleChange} onKeyDown={handleKeyDown}/>
+          <input type="text" value={title} ref={inputElm} onChange={handleChange} onKeyDown={handleKeyDown}/>
         </div>
       </li>
   )
@@ -118,18 +149,18 @@ const KanbanColumn = ({children, bgColor, title}) => {
 function App() {
   const [ongoingList, setOngoingLIst] = useState([
     {
-      title: '开发任务-4', status: '22-05-22 18:15'
+      title: '开发任务-4', status: '2022-05-22 18:15'
     }, {
-      title: '开发任务-6', status: '22-05-22 18:15'
+      title: '开发任务-6', status: '2022-05-22 18:15'
     }, {
-      title: '测试任务-2', status: '22-05-22 18:15'
+      title: '测试任务-2', status: '2022-05-22 18:15'
     }
   ]);
   const [doneList, setDoneList] = useState([
     {
-      title: '开发任务-2', status: '22-05-22 18:15'
+      title: '开发任务-2', status: '2022-05-22 18:15'
     }, {
-      title: '测试任务-1', status: '22-05-22 18:15'
+      title: '测试任务-1', status: '2022-05-22 18:15'
     }
   ]);
   const [showAdd, setShowAdd] = useState(false);
@@ -138,21 +169,18 @@ function App() {
   }
   const [todoList, setTodoList] = useState([
     {
-      title: '开发任务-1', status: '22-05-22 18:15'
+      title: '开发任务-1', status: '2023-05-22 18:15'
     }, {
-      title: '开发任务-3', status: '22-05-22 18:15'
-    }, {
-      title: '开发任务-5', status: '22-05-22 18:15'
-    }, {
-      title: '测试任务-3', status: '22-05-22 18:15'
+      title: '开发任务-3', status: '2023-05-22 18:15'
     }
   ])
   const handleSubmit = (title) => {
     // setShowAdd(false);
     setTodoList([
-      {title, status: new Date().toDateString()},
+      {title, status: new Date()},
       ...todoList
     ])
+    console.log(todoList)
   }
 
   return (
